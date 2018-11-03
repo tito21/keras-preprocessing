@@ -216,7 +216,7 @@ def add_noise(x, sigma):
         x: Input image
         sigma: Standart deviations of the noise
     """
-    np.zeros_like(x)
+    out = np.zeros_like(x)
     noise = np.random.randn(x.shape[0], x.shape[1])*sigma
     if x.shape == 2:
         out = x + noise
