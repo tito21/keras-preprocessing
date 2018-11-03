@@ -210,6 +210,21 @@ def random_channel_shift(x, intensity_range, channel_axis=0):
     intensity = np.random.uniform(-intensity_range, intensity_range)
     return apply_channel_shift(x, intensity, channel_axis=channel_axis)
 
+def add_noise(x, sigma):
+    """Adds random gaussian noise to the image
+    # Arguments
+        x: Input image
+        sigma: Standart deviations of the noise
+    """
+    np.zeros_like(x)
+    noise = np.random.randn(x.shape[0], x.shape[1])*sigma
+    if x.shape == 2:
+        out = x + noise
+    else:
+        out[:, :, 0] = x[:, :, 0] + noise
+        out[:, :, 1] = x[:, :, 1] + noise
+        out[:, :, 2] = x[:, :, 2] + noise
+    return out
 
 def apply_brightness_shift(x, brightness):
     """Performs a brightness shift.
@@ -573,6 +588,7 @@ class ImageDataGenerator(object):
                 in the interval [-1.0, +1.0).
         brightness_range: Tuple or list of two floats. Range for picking
             a brightness shift value from.
+        noise_sigma: Standar deviation for applayed noise
         shear_range: Float. Shear Intensity
             (Shear angle in counter-clockwise direction in degrees)
         zoom_range: Float or [lower, upper]. Range for random zoom.
@@ -777,6 +793,7 @@ class ImageDataGenerator(object):
                  shear_range=0.,
                  zoom_range=0.,
                  channel_shift_range=0.,
+                 noise_sigma = None,
                  fill_mode='nearest',
                  cval=0.,
                  horizontal_flip=False,
@@ -800,6 +817,7 @@ class ImageDataGenerator(object):
         self.shear_range = shear_range
         self.zoom_range = zoom_range
         self.channel_shift_range = channel_shift_range
+        self.noise_sigma = noise_sigma
         self.fill_mode = fill_mode
         self.cval = cval
         self.horizontal_flip = horizontal_flip
@@ -1251,7 +1269,7 @@ class ImageDataGenerator(object):
         if self.brightness_range is not None:
             brightness = np.random.uniform(self.brightness_range[0],
                                            self.brightness_range[1])
-
+        noise_sigma = self.noise_sigma
         transform_parameters = {'theta': theta,
                                 'tx': tx,
                                 'ty': ty,
@@ -1261,7 +1279,8 @@ class ImageDataGenerator(object):
                                 'flip_horizontal': flip_horizontal,
                                 'flip_vertical': flip_vertical,
                                 'channel_shift_intensity': channel_shift_intensity,
-                                'brightness': brightness}
+                                'brightness': brightness,
+                                'noise_sigma': noise_sigma}
 
         return transform_parameters
 
@@ -1319,7 +1338,8 @@ class ImageDataGenerator(object):
 
         if transform_parameters.get('brightness') is not None:
             x = apply_brightness_shift(x, transform_parameters['brightness'])
-
+        if transform_parameters.get('noise_sigma') is not None:
+            x = add_noise(x, transform_parameters['noise_sigma'])
         return x
 
     def random_transform(self, x, seed=None):
